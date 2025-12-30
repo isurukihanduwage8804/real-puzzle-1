@@ -1,124 +1,117 @@
 import streamlit as st
 import random
 
-st.set_page_config(page_title="රූප ප්‍රහේලිකා අභියෝගය", layout="wide")
+st.set_page_config(page_title="පිරිසිදු රූප ප්‍රහේලිකාව", layout="wide")
 
-# CSS - රූපය සහ Layout එක ලස්සන කිරීමට
+# CSS - Layout එක සහ අංක මැදට ගැනීමට
 st.markdown("""
     <style>
     .puzzle-grid {
         display: grid;
-        grid-template-columns: repeat(6, 110px);
-        grid-template-rows: repeat(6, 110px);
+        grid-template-columns: repeat(6, 90px);
+        grid-template-rows: repeat(6, 90px);
         gap: 2px;
         justify-content: center;
-        background-color: #333;
+        background-color: #2c3e50;
         padding: 5px;
-        border-radius: 10px;
-        width: fit-content;
+        border-radius: 8px;
         margin: auto;
+        width: fit-content;
     }
     .tile {
-        width: 110px;
-        height: 110px;
-        background-color: #ecf0f1;
+        width: 90px;
+        height: 90px;
+        background-color: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 24px; /* ඉලක්කම් වල ප්‍රමාණය */
         font-weight: bold;
-        color: #bdc3c7;
-        border: 1px solid #ddd;
+        color: #34495e;
+        border: 1px solid #dcdde1;
+        box-sizing: border-box; /* ප්‍රමාණය වෙනස් වීම වැළැක්වීමට */
+        line-height: 1; /* ඉලක්කම් ඉහළට යාම වැළැක්වීමට */
     }
     .solved-tile {
-        background-size: 660px 660px; /* 110px * 6 = 660px */
-        border: none;
+        background-size: 540px 540px; /* 90px * 6 = 540px */
+        border: none !important;
+        background-repeat: no-repeat;
     }
     .q-container {
         background: white;
         padding: 20px;
         border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         text-align: center;
-        border-left: 10px solid #6c5ce7;
+        border-top: 5px solid #00a8ff;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# වඩාත් ස්ථාවර රූපයක් භාවිතා කිරීම (උදා: ලස්සන සතෙකුගේ රූපයක්)
-IMG_URL = "https://images.unsplash.com/photo-1555169062-013468b47731?q=80&w=660&h=660&auto=format&fit=crop"
+# රූපය සඳහා ඉතාමත් ස්ථාවර URL එකක් (Nature Image)
+IMG_URL = "https://picsum.photos/id/10/540/540"
 
-def play_sound(url):
-    st.components.v1.html(f'<audio autoplay><source src="{url}" type="audio/mp3"></audio>', height=0)
-
-if 'solved_indices' not in st.session_state:
-    st.session_state.solved_indices = []
-    st.session_state.active_index = None
+if 'solved' not in st.session_state:
+    st.session_state.solved = []
+    st.session_state.active = None
     # ප්‍රශ්න 36 ක් සකස් කිරීම
-    questions = []
+    q_data = []
     for i in range(1, 37):
-        a, b = random.randint(2, 12), random.randint(2, 12)
-        ans = a * b
-        opts = random.sample([x for x in range(4, 144) if x != ans], 3) + [ans]
+        n1, n2 = random.randint(2, 9), random.randint(2, 9)
+        ans = n1 * n2
+        opts = random.sample([x for x in range(4, 100) if x != ans], 3) + [ans]
         random.shuffle(opts)
-        questions.append({"q": f"{a} x {b} කීයද?", "opts": opts, "ans": ans})
-    st.session_state.questions = questions
+        q_data.append({"q": f"{n1} x {n2} කීයද?", "opts": opts, "ans": ans})
+    st.session_state.q_data = q_data
 
-st.title("🧩 රූප කැබලි මතුකරන ගණිත ප්‍රහේලිකාව")
+st.markdown("<h1 style='text-align: center;'>🖼️ පිරිසිදු රූප ප්‍රහේලිකාව</h1>", unsafe_allow_html=True)
 
-col1, col2 = st.columns([1.2, 1])
+c1, c2 = st.columns([1, 1])
 
-with col1:
-    # Puzzle Grid එක නිර්මාණය
+with c1:
+    # Puzzle Grid
     grid_html = '<div class="puzzle-grid">'
     for i in range(36):
-        if i in st.session_state.solved_indices:
-            row = i // 6
-            col = i % 6
-            x = col * 110
-            y = row * 110
-            grid_html += f'<div class="tile solved-tile" style="background-image: url(\'{IMG_URL}\'); background-position: -{x}px -{y}px;"></div>'
+        if i in st.session_state.solved:
+            row, col = i // 6, i % 6
+            x, y = col * 90, row * 90
+            grid_html += f'<div class="tile solved-tile" style="background-image: url(\'{IMG_URL}\'); background-position: -{x}px -{y}px; background-color: transparent;"></div>'
         else:
+            # ඉලක්කම් මැදට ගැනීමට tile class එක පමණක් ප්‍රමාණවත්
             grid_html += f'<div class="tile">{i+1}</div>'
     grid_html += '</div>'
     st.markdown(grid_html, unsafe_allow_html=True)
 
-with col2:
-    st.subheader("අංකයක් තෝරා ප්‍රශ්නයට පිළිතුරු දෙන්න:")
-    
-    # අංක 1-36 සඳහා බොත්තම්
-    btn_cols = st.columns(6)
+with c2:
+    st.write("### අංකයක් තෝරන්න:")
+    btns = st.columns(6)
     for i in range(36):
-        with btn_cols[i % 6]:
-            if i not in st.session_state.solved_indices:
-                if st.button(f"{i+1}", key=f"btn_{i}"):
-                    st.session_state.active_index = i
-                    play_sound("https://www.soundjay.com/buttons/button-3.mp3")
+        with btns[i % 6]:
+            if i not in st.session_state.solved:
+                if st.button(f"{i+1}", key=f"b_{i}", use_container_width=True):
+                    st.session_state.active = i
 
-    if st.session_state.active_index is not None:
-        idx = st.session_state.active_index
-        q_item = st.session_state.questions[idx]
+    if st.session_state.active is not None:
+        idx = st.session_state.active
+        item = st.session_state.q_data[idx]
         
         st.markdown(f"""
             <div class="q-container">
-                <h4>අංක {idx+1} ප්‍රශ්නය:</h4>
-                <h1 style="color:#6c5ce7;">{q_item['q']}</h1>
+                <p style='color:gray;'>අංක {idx+1} ප්‍රහේලිකාව</p>
+                <h2>{item['q']}</h2>
             </div>
         """, unsafe_allow_html=True)
         
-        user_choice = st.radio("නිවැරදි පිළිතුර තෝරන්න:", q_item['opts'], key=f"rad_{idx}", horizontal=True)
+        choice = st.radio("නිවැරදි පිළිතුර:", item['opts'], key=f"ans_{idx}", horizontal=True)
         
-        if st.button("පිළිතුර තහවුරු කරන්න", key="confirm"):
-            if user_choice == q_item['ans']:
-                st.session_state.solved_indices.append(idx)
-                st.session_state.active_index = None
-                play_sound("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3")
-                st.success("නිවැරදියි! රූපය මතු වුණා.")
+        if st.button("තහවුරු කරන්න", key="confirm"):
+            if choice == item['ans']:
+                st.session_state.solved.append(idx)
+                st.session_state.active = None
+                st.balloons()
                 st.rerun()
             else:
-                play_sound("https://www.soundjay.com/buttons/button-10.mp3")
-                st.error("පිළිතුර වැරදියි. නැවත උත්සාහ කරන්න!")
+                st.error("පිළිතුර වැරදියි!")
 
-if len(st.session_state.solved_indices) == 36:
-    st.balloons()
-    st.success("🎊 විශිෂ්ටයි! ඔබ රූපය සම්පූර්ණයෙන්ම මතු කළා!")
+if len(st.session_state.solved) == 36:
+    st.success("🎉 නියමයි! ඔබ රූපය සම්පූර්ණ කළා!")
