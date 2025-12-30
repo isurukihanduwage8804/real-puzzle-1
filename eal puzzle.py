@@ -3,117 +3,122 @@ import random
 
 st.set_page_config(page_title="රූප ප්‍රහේලිකා අභියෝගය", layout="wide")
 
-# CSS - රූප කැබලි සහ පෙනුම සැකසීමට
+# CSS - රූපය සහ Layout එක ලස්සන කිරීමට
 st.markdown("""
     <style>
     .puzzle-grid {
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(6, 110px);
+        grid-template-rows: repeat(6, 110px);
         gap: 2px;
-        width: 480px;
+        justify-content: center;
+        background-color: #333;
+        padding: 5px;
+        border-radius: 10px;
+        width: fit-content;
         margin: auto;
-        border: 5px solid #333;
-        background-color: #f0f0f0;
     }
     .tile {
-        width: 80px;
-        height: 80px;
-        background-color: #bdc3c7; /* නොවිසඳූ කොටස් අළු පාටයි */
-        border: 0.1px solid #eee;
-        background-size: 480px 480px; /* රූපයේ මුළු ප්‍රමාණය */
+        width: 110px;
+        height: 110px;
+        background-color: #ecf0f1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: bold;
+        color: #bdc3c7;
+        border: 1px solid #ddd;
     }
-    .question-card {
+    .solved-tile {
+        background-size: 660px 660px; /* 110px * 6 = 660px */
+        border: none;
+    }
+    .q-container {
         background: white;
         padding: 20px;
         border-radius: 15px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         text-align: center;
+        border-left: 10px solid #6c5ce7;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# රූපයේ URL එක (ඔබට කැමති රූපයක් මෙතැනට දැමිය හැක)
-img_url = "https://images.unsplash.com/photo-1501854140801-50d01674af3e?w=480&h=480&fit=crop"
+# වඩාත් ස්ථාවර රූපයක් භාවිතා කිරීම (උදා: ලස්සන සතෙකුගේ රූපයක්)
+IMG_URL = "https://images.unsplash.com/photo-1555169062-013468b47731?q=80&w=660&h=660&auto=format&fit=crop"
 
 def play_sound(url):
     st.components.v1.html(f'<audio autoplay><source src="{url}" type="audio/mp3"></audio>', height=0)
 
-# ප්‍රශ්න සහ බහුවරණ පිළිතුරු 36ක්
-if 'puzzle_data' not in st.session_state:
+if 'solved_indices' not in st.session_state:
+    st.session_state.solved_indices = []
+    st.session_state.active_index = None
+    # ප්‍රශ්න 36 ක් සකස් කිරීම
     questions = []
     for i in range(1, 37):
-        a, b = random.randint(1, 12), random.randint(1, 12)
-        correct = a * b
-        wrong = random.sample([x for x in range(1, 144) if x != correct], 3)
-        options = wrong + [correct]
-        random.shuffle(options)
-        questions.append({"q": f"{a} x {b} කීයද?", "options": options, "ans": correct})
-    
-    st.session_state.puzzle_data = questions
-    st.session_state.solved_tiles = [] # විසඳූ කොටු ලැයිස්තුව
-    st.session_state.current_tile = None
+        a, b = random.randint(2, 12), random.randint(2, 12)
+        ans = a * b
+        opts = random.sample([x for x in range(4, 144) if x != ans], 3) + [ans]
+        random.shuffle(opts)
+        questions.append({"q": f"{a} x {b} කීයද?", "opts": opts, "ans": ans})
+    st.session_state.questions = questions
 
-st.title("🧩 රූප කැබලි ගළපන ප්‍රහේලිකාව")
-st.write("අංකයක් තෝරා ප්‍රශ්නයට පිළිතුරු දී රූපය සම්පූර්ණ කරන්න!")
+st.title("🧩 රූප කැබලි මතුකරන ගණිත ප්‍රහේලිකාව")
 
-# වම සහ දකුණ ලෙස කොටස් දෙකකට බෙදීම
-col1, col2 = st.columns([1, 1])
+col1, col2 = st.columns([1.2, 1])
 
 with col1:
     # Puzzle Grid එක නිර්මාණය
-    html_grid = '<div class="puzzle-grid">'
+    grid_html = '<div class="puzzle-grid">'
     for i in range(36):
-        row = i // 6
-        col = i % 6
-        pos_x = col * 80
-        pos_y = row * 80
-        
-        if i in st.session_state.solved_tiles:
-            # විසඳූ කොටු සඳහා රූපයේ කොටස පෙන්වීම
-            html_grid += f'<div class="tile" style="background-image: url(\'{img_url}\'); background-position: -{pos_x}px -{pos_y}px; background-color: transparent;"></div>'
+        if i in st.session_state.solved_indices:
+            row = i // 6
+            col = i % 6
+            x = col * 110
+            y = row * 110
+            grid_html += f'<div class="tile solved-tile" style="background-image: url(\'{IMG_URL}\'); background-position: -{x}px -{y}px;"></div>'
         else:
-            # නොවිසඳූ කොටු සඳහා අංකය පෙන්වීම
-            html_grid += f'<div class="tile" style="display:flex; align-items:center; justify-content:center; font-weight:bold; color:#7f8c8d;">{i+1}</div>'
-    html_grid += '</div>'
-    st.markdown(html_grid, unsafe_allow_html=True)
+            grid_html += f'<div class="tile">{i+1}</div>'
+    grid_html += '</div>'
+    st.markdown(grid_html, unsafe_allow_html=True)
 
 with col2:
-    # අංක තේරීමේ බොත්තම්
-    st.write("### කැබැල්ලක් තෝරන්න:")
-    tile_cols = st.columns(6)
+    st.subheader("අංකයක් තෝරා ප්‍රශ්නයට පිළිතුරු දෙන්න:")
+    
+    # අංක 1-36 සඳහා බොත්තම්
+    btn_cols = st.columns(6)
     for i in range(36):
-        with tile_cols[i % 6]:
-            if i not in st.session_state.solved_tiles:
+        with btn_cols[i % 6]:
+            if i not in st.session_state.solved_indices:
                 if st.button(f"{i+1}", key=f"btn_{i}"):
-                    st.session_state.current_tile = i
+                    st.session_state.active_index = i
                     play_sound("https://www.soundjay.com/buttons/button-3.mp3")
 
-    # ප්‍රශ්නය පෙන්වීම
-    if st.session_state.current_tile is not None:
-        idx = st.session_state.current_tile
-        q_item = st.session_state.puzzle_data[idx]
+    if st.session_state.active_index is not None:
+        idx = st.session_state.active_index
+        q_item = st.session_state.questions[idx]
         
         st.markdown(f"""
-            <div class="question-card">
-                <h4>අංක {idx+1} සඳහා ප්‍රශ්නය:</h4>
-                <h2>{q_item['q']}</h2>
+            <div class="q-container">
+                <h4>අංක {idx+1} ප්‍රශ්නය:</h4>
+                <h1 style="color:#6c5ce7;">{q_item['q']}</h1>
             </div>
         """, unsafe_allow_html=True)
         
-        # බහුවරණ පිළිතුරු (Radio Buttons)
-        choice = st.radio("නිවැරදි පිළිතුර තෝරන්න:", q_item['options'], key=f"choice_{idx}", horizontal=True)
+        user_choice = st.radio("නිවැරදි පිළිතුර තෝරන්න:", q_item['opts'], key=f"rad_{idx}", horizontal=True)
         
-        if st.button("පිළිතුර තහවුරු කරන්න ✅"):
-            if choice == q_item['ans']:
-                st.session_state.solved_tiles.append(idx)
-                st.session_state.current_tile = None
+        if st.button("පිළිතුර තහවුරු කරන්න", key="confirm"):
+            if user_choice == q_item['ans']:
+                st.session_state.solved_indices.append(idx)
+                st.session_state.active_index = None
                 play_sound("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3")
-                st.success("නිවැරදියි! රූප කැබැල්ල එකතු වුණා.")
+                st.success("නිවැරදියි! රූපය මතු වුණා.")
                 st.rerun()
             else:
                 play_sound("https://www.soundjay.com/buttons/button-10.mp3")
-                st.error("වැරදියි! නැවත උත්සාහ කරන්න.")
+                st.error("පිළිතුර වැරදියි. නැවත උත්සාහ කරන්න!")
 
-if len(st.session_state.solved_tiles) == 36:
+if len(st.session_state.solved_indices) == 36:
     st.balloons()
-    st.success("🎉 සුභ පැතුම්! ඔබ සම්පූර්ණ රූපයම නිම කළා!")
+    st.success("🎊 විශිෂ්ටයි! ඔබ රූපය සම්පූර්ණයෙන්ම මතු කළා!")
